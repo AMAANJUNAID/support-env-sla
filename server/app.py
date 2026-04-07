@@ -1,16 +1,25 @@
 from fastapi import FastAPI
-import uvicorn
+from app.env import SupportEnv
+from app.models import Action
 
 app = FastAPI()
+
+env = SupportEnv()
 
 @app.get("/")
 def root():
     return {"message": "Server running"}
 
-# 👉 THIS IS REQUIRED
-def main():
-    uvicorn.run(app, host="0.0.0.0", port=7860)
+@app.post("/reset")
+def reset():
+    return env.reset().dict()
 
-# 👉 THIS IS ALSO REQUIRED
-if __name__ == "__main__":
-    main()
+@app.post("/step")
+def step(action: Action):
+    obs, reward, done, info = env.step(action)
+    return {
+        "observation": obs.dict(),
+        "reward": reward,
+        "done": done,
+        "info": info
+    }
