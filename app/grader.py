@@ -1,42 +1,44 @@
+id="grader_fixed"
 def update_sentiment(state, action):
     text = action.content.lower()
 
     if "sorry" in text or "apolog" in text:
-        return "calmer"
-    if "wait" in text or "delay" in text:
+        return "neutral"
+    if "delay" in text or "wait" in text:
         return "angry"
+    if action.action_type == "resolve":
+        return "happy"
+
     return state["sentiment"]
 
 
 def grade_step(state, action):
     reward = 0.0
-
-    # SLA decay
-    state["sla_hours_left"] -= 1
-    if state["sla_hours_left"] <= 0:
-        return -1.0
-
     ticket = state["ticket"]
 
-    # correct decision
+    # --- SLA DECAY ---
+    state["sla_hours_left"] -= 1
+    if state["sla_hours_left"] <= 0:
+        return -0.5  # softer penalty, not instant fail
+
+    # --- CORRECT ACTION ---
     if action.action_type == ticket["expected_action"]:
         reward += 0.5
 
-    # sentiment handling
+    # --- SENTIMENT HANDLING ---
     if state["sentiment"] == "angry" and "sorry" in action.content.lower():
         reward += 0.2
 
-    # enterprise customers are stricter
+    # --- ENTERPRISE STRICTNESS ---
     if ticket["customer_type"] == "enterprise":
         if action.action_type != "escalate":
             reward -= 0.3
 
-    # refund misuse penalty
+    # --- BAD ACTION PENALTIES ---
     if action.action_type == "refund" and ticket["issue_type"] != "refund":
         reward -= 0.5
-    if action.action_type == "reply" and "sorry" in action.content.lower():
-        reward += 0.3
-    # useless answer
+
+    # weak / useless response
     if len(action.content.strip()) < 5:
         reward -= 0.4
 
@@ -45,19 +47,20 @@ def grade_step(state, action):
         if state["history"][-1] == state["history"][-2]:
             reward -= 0.2
 
+    # --- UPDATE SENTIMENT ---
     state["sentiment"] = update_sentiment(state, action)
 
     return reward
 
 
 def grade_final(state):
-    history = " ".join(state["history"]).lower()
     ticket = state["ticket"]
+    history_text = " ".join(state["history"]).lower()
 
     score = 0.0
 
-    # correct intent achieved
-    if ticket["expected_action"] in history:
+    # correct action appeared
+    if ticket["expected_action"] in history_text:
         score += 0.4
 
     # SLA respected
@@ -65,10 +68,10 @@ def grade_final(state):
         score += 0.3
 
     # sentiment improved
-    if state["sentiment"] != "angry":
+    if state["sentiment"] in ["neutral", "happy"]:
         score += 0.2
 
-    # no random actions
+    # took meaningful steps
     if len(state["history"]) > 0:
         score += 0.1
 

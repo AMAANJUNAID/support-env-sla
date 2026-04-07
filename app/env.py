@@ -1,6 +1,8 @@
+id="env_final"
 from app.models import Action, Observation
 from app.tasks import get_task
 from app.grader import grade_step, grade_final
+
 
 class SupportEnv:
     def __init__(self, task_name="easy"):
@@ -18,6 +20,7 @@ class SupportEnv:
             "sentiment": self.task["sentiment"],
             "sla_hours_left": self.task["sla_hours_left"]
         }
+
         return self._obs()
 
     def _obs(self):
@@ -48,6 +51,8 @@ class SupportEnv:
             reward += grade_final(self.state)
 
         self.state["done"] = done
+
+        reward = max(0.0, min(1.0, reward))
 
         return self._obs(), round(reward, 2), done, {"error": None}
 

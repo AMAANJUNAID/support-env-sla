@@ -1,41 +1,41 @@
-import random
+id="tasks_fixed"
+def get_task(name="easy"):
+    tasks = {
+        "easy": {
+            "id": "T1",
+            "message": "I can't access my account",
+            "issue_type": "account",
+            "expected_action": "request_info",
+            "priority": "medium",
+            "sentiment": "neutral",
+            "customer_type": "normal",
+            "sla_hours_left": 5,
+            "max_steps": 4
+        },
 
-ISSUES = [
-    ("refund", "I want a refund for my order."),
-    ("delivery", "My order hasn’t arrived yet."),
-    ("double_charge", "I was charged twice for my purchase."),
-    ("account", "I can't access my account."),
-]
+        "medium": {
+            "id": "T2",
+            "message": "I was charged twice for my purchase",
+            "issue_type": "double_charge",
+            "expected_action": "escalate",
+            "priority": "medium",
+            "sentiment": "frustrated",
+            "customer_type": "premium",
+            "sla_hours_left": 3,
+            "max_steps": 5
+        },
 
-CUSTOMER_TYPES = ["normal", "premium", "enterprise"]
-SENTIMENTS = ["neutral", "frustrated", "angry"]
-
-def get_task(name):
-    issue_type, base_msg = random.choice(ISSUES)
-    customer_type = random.choice(CUSTOMER_TYPES)
-    sentiment = random.choice(SENTIMENTS)
-
-    sla = {
-        "easy": 5,
-        "medium": 4,
-        "hard": 2
-    }[name]
-
-    expected_action = {
-        "refund": "refund",
-        "delivery": "request_info",
-        "double_charge": "escalate",
-        "account": "request_info"
-    }[issue_type]
-
-    return {
-        "id": random.randint(100, 999),
-        "message": base_msg,
-        "issue_type": issue_type,
-        "expected_action": expected_action,
-        "priority": "high" if name == "hard" else "medium",
-        "sentiment": sentiment,
-        "customer_type": customer_type,
-        "sla_hours_left": sla,
-        "max_steps": 6 if name == "hard" else 4
+        "hard": {
+            "id": "T3",
+            "message": "My business is down due to your outage",
+            "issue_type": "outage",
+            "expected_action": "escalate",
+            "priority": "high",
+            "sentiment": "angry",
+            "customer_type": "enterprise",
+            "sla_hours_left": 2,
+            "max_steps": 6
+        }
     }
+
+    return tasks[name]
