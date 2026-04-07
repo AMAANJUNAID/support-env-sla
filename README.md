@@ -1,83 +1,138 @@
----
-title: Support Env SLA
-emoji: 🤖
-colorFrom: blue
-colorTo: green
-sdk: docker
-app_port: 7860
-pinned: false
----
-
-# Support Env SLA
-
-## Overview
-
-This project implements a realistic evaluation environment for AI agents operating in customer support workflows.
-
-Unlike simple text-based benchmarks, this environment simulates real-world operational constraints such as:
-
-- SLA deadlines (time pressure)
-- Customer sentiment dynamics
-- Enterprise vs normal customer expectations
-- Multi-step decision making
-- Trade-offs between speed, correctness, and cost
+# 🚀 Support Env SLA  
+### Where AI stops answering… and starts making decisions
 
 ---
 
-## Environment Design
+## 🧠 The Reality
 
-Agents interact with the system using sequential actions:
+Most AI models look impressive until they face real-world constraints.
 
-- `respond`
-- `resolve`
-- `escalate`
-- `request_info`
+In customer support:
+- Users are impatient 😡  
+- Deadlines matter ⏱️  
+- Wrong decisions cost money 💸  
+- Conversations are multi-step 🔁  
 
-Each step updates:
-
-- Customer sentiment (angry → neutral → happy)
-- SLA countdown
-- Conversation history
+👉 And suddenly, “smart AI” starts failing.
 
 ---
 
-## Reward Function
+## 💡 What I Built
 
-The reward is dense and shaped across multiple dimensions:
+**Support Env SLA** — a simulation environment to evaluate AI agents under **real operational pressure**.
 
-- Correct decision making (+0.5)
-- SLA compliance (+0.3)
-- Sentiment improvement (+0.2)
-- Enterprise penalties for wrong handling
-- Escalation cost
-- Delay penalties for slow resolution
+This isn’t about generating responses.
 
-This ensures agents must optimize **long-term strategy**, not just immediate responses.
+It’s about:
+> Making the right decision at the right time under constraints.
 
 ---
 
-## Task Difficulty
+## ⚙️ What Makes This Different
 
-Three levels are provided:
+Unlike typical AI benchmarks, this environment introduces:
 
-### Easy
-- Clear issue
-- Low pressure
-- Direct resolution path
-
-### Medium
-- Ambiguity in actions
-- Requires reasoning
-- Moderate SLA
-
-### Hard
-- High priority enterprise issue
-- Strict SLA constraints
-- Strong penalties for incorrect handling
-- Requires escalation decisions under pressure
+### ⏱️ Time Pressure (SLA)
+Agents must act before deadlines expire — delay = penalty
 
 ---
 
-## API Endpoints
+### 😡 Dynamic Customer Sentiment
+Actions directly affect mood:
+```text
+angry → neutral → happy
+```
+---
+## 🏢 Real Customer Types
 
-### Reset Environment
+Enterprise customers:
+
+- stricter expectations
+- higher penalties
+- require escalation strategies
+
+---
+## 🔁 Multi-Step Decision Making
+
+One step isn’t enough.
+Agents must:
+
+- plan
+- adapt
+- recover from mistakes
+
+---
+
+## ⚖️ Trade-Offs (The Hard Part)
+
+Agents must balance:
+
+- Speed vs Accuracy
+- Cost vs Satisfaction
+- Resolution vs Escalation
+
+👉 There is no “always correct” answer
+
+---
+
+## 🎯 Available Actions
+```
+respond        → communicate  
+resolve        → fix issue  
+escalate       → send to higher support  
+request_info   → gather details  
+```
+
+---
+
+🧪 Task Difficulty
+```
+Level                      What Happens
+🟢 Easy	                   Clear issue, low pressure
+🟡 Medium	               Ambiguity, reasoning needed
+🔴 Hard	                   Enterprise + strict SLA + high penalties
+```
+
+---
+
+
+## 📊 Reward System (What Actually Matters)
+
+The environment evaluates:
+
+- ✔️ Correct decisions
+- ⏳ SLA compliance
+- 😡 Sentiment handling
+- ⚠️ Mistakes & delays
+- 🔁 Efficiency across steps
+
+👉 This forces long-term reasoning, not shortcuts.
+
+---
+🧪 Run Locally
+```
+pip install -r requirements.txt
+python inference.py
+```
+---
+🧠 Why This Matters
+
+Most AI evaluation today is:
+```
+ Single-step → Static → Unrealistic
+```
+This project moves toward:
+```
+ Multi-step → Dynamic → Real-world aligned
+```
+👉 This is how AI should be evaluated.
+
+## 🛠️ Tech Stack
+- FastAPI
+- Python
+- OpenAI API
+- Docker
+- Hugging Face Spaces
+
+
+
