@@ -1,9 +1,69 @@
+import os
 import requests
-import time
+from openai import OpenAI
 
-BASE_URL = "http://localhost:7860"  # change automatically if needed
+# =========================
+# REQUIRED ENV VARIABLES
+# =========================
+API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:7860")
+MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
+HF_TOKEN = os.getenv("HF_TOKEN")
+
+# optional (for docker image use)
+LOCAL_IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME")
+
+# =========================
+# OPENAI CLIENT (MANDATORY)
+# =========================
+client = OpenAI(api_key=HF_TOKEN)
 
 TASKS = ["easy", "medium", "hard"]
+
+
+def choose_action(obs):
+    """
+    Simple baseline policy using LLM (required usage)
+    """
+
+    prompt = f"""
+    You are a customer support agent.
+
+    Ticket: {obs['message']}
+    Sentiment: {obs['sentiment']}
+    SLA hours left: {obs['sla_hours_left']}
+    Issue type: {obs['issue_type']}
+    Customer type: {obs['customer_type']}
+
+    Choose ONE action from:
+    - respond
+    - resolve
+    - escalate
+    - request_info
+
+    Return only the action type.
+    """
+
+    try:
+        response = client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0
+        )
+
+        action_type = response.choices[0].message.content.strip().lower()
+
+        # safety fallback
+        if action_type not in ["respond", "resolve", "escalate", "request_info"]:
+            action_type = "respond"
+
+    except Exception:
+        # fallback if API fails
+        action_type = "respond"
+
+    return {
+        "action_type": action_type,
+        "content": "We are handling your request."
+    }
 
 
 def run_task(task_name):
@@ -11,8 +71,8 @@ def run_task(task_name):
 
     total_reward = 0.0
 
-    # reset
-    res = requests.post(f"{BASE_URL}/reset", json={"task": task_name})
+    # reset env
+    res = requests.post(f"{API_BASE_URL}/reset", json={"task": task_name})
     obs = res.json()
 
     done = False
@@ -21,23 +81,9 @@ def run_task(task_name):
     while not done:
         step += 1
 
-        # --- SIMPLE POLICY (baseline) ---
-        if obs["sentiment"] == "angry":
-            action_type = "respond"
-            content = "Sorry for the inconvenience, we are working on it."
-        elif obs["sla_hours_left"] <= 1:
-            action_type = "escalate"
-            content = "Escalating this issue immediately."
-        else:
-            action_type = "resolve"
-            content = "Your issue has been resolved."
+        action = choose_action(obs)
 
-        action = {
-            "action_type": action_type,
-            "content": content
-        }
-
-        res = requests.post(f"{BASE_URL}/step", json=action)
+        res = requests.post(f"{API_BASE_URL}/step", json=action)
         data = res.json()
 
         obs = data["observation"]
@@ -46,12 +92,13 @@ def run_task(task_name):
 
         total_reward += reward
 
-        print(f"[STEP] {step} action={action_type} reward={reward}")
+        # REQUIRED LOG FORMAT
+        print(f"[STEP] step={step} action={action['action_type']} reward={reward}")
 
         if step > 10:
             break
 
-    print(f"[END] task={task_name} total_reward={round(total_reward,2)}\n")
+    print(f"[END] task={task_name} total_reward={round(total_reward, 2)}\n")
 
     return total_reward
 
