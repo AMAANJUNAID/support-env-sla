@@ -1,0 +1,34 @@
+name: support_env_sla
+description: SLA-based dynamic customer support environment
+
+entrypoint: app.server:app
+
+actions:
+  type: object
+  properties:
+    action_type:
+      type: string
+    content:
+      type: string
+
+observations:
+  type: object
+  properties:
+    ticket_id:
+      type: integer
+    message:
+      type: string
+    priority:
+      type: string
+    sentiment:
+      type: string
+    sla_hours_left:
+      type: integer
+    customer_type:
+      type: string
+    issue_type:
+      type: string
+    history:
+      type: array
+    step_count:
+      type: integer
