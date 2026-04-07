@@ -1,13 +1,12 @@
-id="grader_fixed"
 def update_sentiment(state, action):
     text = action.content.lower()
 
     if "sorry" in text or "apolog" in text:
         return "neutral"
-    if "delay" in text or "wait" in text:
-        return "angry"
     if action.action_type == "resolve":
         return "happy"
+    if "wait" in text or "delay" in text:
+        return "angry"
 
     return state["sentiment"]
 
@@ -18,8 +17,9 @@ def grade_step(state, action):
 
     # --- SLA DECAY ---
     state["sla_hours_left"] -= 1
+
     if state["sla_hours_left"] <= 0:
-        return -0.5  # softer penalty, not instant fail
+        reward -= 0.5
 
     # --- CORRECT ACTION ---
     if action.action_type == ticket["expected_action"]:
@@ -34,33 +34,41 @@ def grade_step(state, action):
         if action.action_type != "escalate":
             reward -= 0.3
 
-    # --- BAD ACTION PENALTIES ---
+    # --- BAD ACTIONS ---
     if action.action_type == "refund" and ticket["issue_type"] != "refund":
         reward -= 0.5
 
-    # weak / useless response
+    # --- LOW QUALITY RESPONSE ---
     if len(action.content.strip()) < 5:
         reward -= 0.4
 
-    # repetition penalty
+    # --- REPETITION ---
     if len(state["history"]) >= 2:
         if state["history"][-1] == state["history"][-2]:
             reward -= 0.2
 
+    # --- DELAY PENALTY (NEW) ---
+    if state["step_count"] > 3:
+        reward -= 0.2
+
     # --- UPDATE SENTIMENT ---
     state["sentiment"] = update_sentiment(state, action)
+
+    # --- PRIORITY MULTIPLIER ---
+    if ticket["priority"] == "high":
+        reward *= 1.5
 
     return reward
 
 
 def grade_final(state):
     ticket = state["ticket"]
-    history_text = " ".join(state["history"]).lower()
+    history = " ".join(state["history"]).lower()
 
     score = 0.0
 
-    # correct action appeared
-    if ticket["expected_action"] in history_text:
+    # correct intent
+    if ticket["expected_action"] in history:
         score += 0.4
 
     # SLA respected

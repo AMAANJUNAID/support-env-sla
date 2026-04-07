@@ -1,8 +1,7 @@
-id="tasks_fixed"
 def get_task(name="easy"):
     tasks = {
         "easy": {
-            "id": 1 ,
+            "id": 1,
             "message": "I can't access my account",
             "issue_type": "account",
             "expected_action": "request_info",
@@ -14,7 +13,7 @@ def get_task(name="easy"):
         },
 
         "medium": {
-            "id": 2 ,
+            "id": 2,
             "message": "I was charged twice for my purchase",
             "issue_type": "double_charge",
             "expected_action": "escalate",
@@ -26,8 +25,8 @@ def get_task(name="easy"):
         },
 
         "hard": {
-            "id": 3 ,
-            "message": "My business is down due to your outage",
+            "id": 3,
+            "message": "Our entire system is down, losing revenue every minute",
             "issue_type": "outage",
             "expected_action": "escalate",
             "priority": "high",

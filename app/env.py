@@ -1,4 +1,3 @@
-id="env_final"
 from app.models import Action, Observation
 from app.tasks import get_task
 from app.grader import grade_step, grade_final
@@ -45,7 +44,10 @@ class SupportEnv:
 
         reward = grade_step(self.state, action)
 
-        done = self.state["step_count"] >= self.task["max_steps"]
+        done = (
+            self.state["step_count"] >= self.task["max_steps"]
+            or action.action_type == "resolve"
+        )
 
         if done:
             reward += grade_final(self.state)

@@ -1,106 +1,72 @@
-import os
-from openai import OpenAI
-from app.env import SupportEnv
-from app.models import Action
+import requests
+import time
 
-# --- Client setup ---
-client = OpenAI(
-    base_url=os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1",
-    api_key=os.getenv("HF_TOKEN") or os.getenv("OPENAI_API_KEY")
-)
-
-MODEL_NAME = os.getenv("MODEL_NAME") or "Qwen/Qwen2.5-72B-Instruct"
+BASE_URL = "http://localhost:7860"  # change automatically if needed
 
 TASKS = ["easy", "medium", "hard"]
 
 
-# --- Action type decision ---
-def decide_action(text):
-    text = text.lower()
+def run_task(task_name):
+    print(f"[START] task={task_name}")
 
-    if "escalate" in text or "technical team" in text:
-        return "escalate"
-    if "refund" in text:
-        return "refund"
-    if "provide" in text or "details" in text or "information" in text:
-        return "request_info"
-    return "reply"
+    total_reward = 0.0
 
+    # reset
+    res = requests.post(f"{BASE_URL}/reset", json={"task": task_name})
+    obs = res.json()
 
-# --- Clean model output ---
-def clean_action_text(raw_text):
-    raw_text = raw_text.strip()
+    done = False
+    step = 0
 
-    lines = [line.strip() for line in raw_text.split("\n") if line.strip()]
+    while not done:
+        step += 1
 
-    for line in lines:
-        if len(line) > 20 and not line.lower().startswith("best next action"):
-            cleaned = line[:200]
-            break
-    else:
-        cleaned = lines[0][:200] if lines else "Sorry, I will assist you."
+        # --- SIMPLE POLICY (baseline) ---
+        if obs["sentiment"] == "angry":
+            action_type = "respond"
+            content = "Sorry for the inconvenience, we are working on it."
+        elif obs["sla_hours_left"] <= 1:
+            action_type = "escalate"
+            content = "Escalating this issue immediately."
+        else:
+            action_type = "resolve"
+            content = "Your issue has been resolved."
 
-    # remove markdown junk
-    cleaned = cleaned.replace("*", "").replace("#", "")
+        action = {
+            "action_type": action_type,
+            "content": content
+        }
 
-    return cleaned
+        res = requests.post(f"{BASE_URL}/step", json=action)
+        data = res.json()
 
+        obs = data["observation"]
+        reward = data["reward"]
+        done = data["done"]
 
-# --- Run tasks ---
-for task in TASKS:
-    env = SupportEnv(task)
-    obs = env.reset()
+        total_reward += reward
 
-    print(f"[START] task={task} env=support_env_sla model={MODEL_NAME}")
+        print(f"[STEP] {step} action={action_type} reward={reward}")
 
-    rewards = []
-    success = False
-
-    for step in range(1, 8):
-        prompt = f"""
-Customer: {obs.message}
-Issue: {obs.issue_type}
-Customer Type: {obs.customer_type}
-Sentiment: {obs.sentiment}
-SLA: {obs.sla_hours_left}
-
-Give ONLY a short support response (1 sentence). No explanation.
-"""
-
-        try:
-            response = client.chat.completions.create(
-                model=MODEL_NAME,
-                messages=[{"role": "user", "content": prompt}]
-            )
-
-            raw_text = response.choices[0].message.content
-            action_text = clean_action_text(raw_text)
-
-            action_type = decide_action(action_text)
-
-            action = Action(action_type=action_type, content=action_text)
-
-            obs, reward, done, info = env.step(action)
-
-        except Exception as e:
-            print(f"[STEP] step={step} action=error reward=0.00 done=true error={str(e)}")
+        if step > 10:
             break
 
-        rewards.append(f"{reward:.2f}")
+    print(f"[END] task={task_name} total_reward={round(total_reward,2)}\n")
 
-        print(
-            f"[STEP] step={step} action={action_text} reward={reward:.2f} done={str(done).lower()} error={info.get('error') or 'null'}"
-        )
+    return total_reward
 
-        if done:
-            success = reward > 0.5
-            break
 
-    if rewards:
-        score = sum(map(float, rewards)) / len(rewards)
-    else:
-        score = 0.0
+def main():
+    scores = []
 
-    print(
-        f"[END] success={str(success).lower()} steps={step} score={score:.2f} rewards={','.join(rewards)}"
-    )
+    for task in TASKS:
+        score = run_task(task)
+        scores.append(score)
+
+    final_score = sum(scores) / len(scores)
+
+    print(f"[FINAL SCORE] {round(final_score, 3)}")
+
+
+if __name__ == "__main__":
+    main()
