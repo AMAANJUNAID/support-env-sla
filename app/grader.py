@@ -9,10 +9,6 @@ def update_sentiment(state, action):
     return state["sentiment"]
 
 
-def clamp(x):
-    return max(0.01, min(x, 0.99))
-
-
 # =========================
 # STEP REWARD
 # =========================
@@ -22,7 +18,7 @@ def grade_step(state, action):
     state["sla_hours_left"] -= 1
 
     if state["sla_hours_left"] <= 0:
-        return 0.01
+        return 0.01  # safe fallback
 
     ticket = state["ticket"]
 
@@ -48,7 +44,7 @@ def grade_step(state, action):
 
     state["sentiment"] = update_sentiment(state, action)
 
-    return clamp(reward)
+    return float(reward)
 
 
 # =========================
@@ -72,4 +68,4 @@ def grade_final(state):
     if len(state["history"]) > 0:
         score += 0.1
 
-    return clamp(score)
+    return float(score)
