@@ -3,32 +3,13 @@ from app.tasks import get_task
 from app.grader import grade_step, grade_final
 
 
-def safe_reward(x):
-    """
-    HARD GUARANTEE:
-    Always returns value strictly between (0,1)
-    """
-    try:
-        x = float(x)
-    except:
-        return 0.5
-
-    # clamp BEFORE rounding
+def safe_score(x):
+    # absolute guarantee (0,1)
     if x <= 0:
-        x = 0.01
-    elif x >= 1:
-        x = 0.99
-
-    # round (use 3 decimals to avoid 1.0 jump)
-    x = round(x, 3)
-
-    # clamp AGAIN after rounding
-    if x <= 0:
-        x = 0.01
-    elif x >= 1:
-        x = 0.99
-
-    return x
+        return 0.01
+    if x >= 1:
+        return 0.99
+    return round(x, 4)
 
 
 class SupportEnv:
@@ -45,7 +26,8 @@ class SupportEnv:
             "step_count": 0,
             "done": False,
             "sentiment": self.task["sentiment"],
-            "sla_hours_left": self.task["sla_hours_left"]
+            "sla_hours_left": self.task["sla_hours_left"],
+            "total_reward": 0.0   # 🔥 TRACK TOTAL
         }
         return self._obs()
 
@@ -71,14 +53,25 @@ class SupportEnv:
 
         reward = grade_step(self.state, action)
 
+        # accumulate
+        self.state["total_reward"] += reward
+
         done = self.state["step_count"] >= self.task["max_steps"]
 
         if done:
-            reward += grade_final(self.state)
+            final_score = grade_final(self.state)
+
+            # 🔥 NORMALIZE TOTAL SCORE
+            total = self.state["total_reward"] + final_score
+
+            # divide by max possible (approx safe normalization)
+            normalized = total / 3.0
+
+            reward = safe_score(normalized)
+
+        else:
+            reward = safe_score(reward)
 
         self.state["done"] = done
-
-        # 🔥 SINGLE SAFE EXIT POINT
-        reward = safe_reward(reward)
 
         return self._obs(), reward, done, {"error": None}
