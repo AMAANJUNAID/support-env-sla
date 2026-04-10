@@ -3,6 +3,10 @@ from app.tasks import get_task
 from app.grader import grade_step, grade_final
 
 
+def clamp(x):
+    return max(0.01, min(x, 0.99))
+
+
 class SupportEnv:
     def __init__(self, task_name="easy"):
         self.task_name = task_name
@@ -19,7 +23,6 @@ class SupportEnv:
             "sentiment": self.task["sentiment"],
             "sla_hours_left": self.task["sla_hours_left"]
         }
-
         return self._obs()
 
     def _obs(self):
@@ -37,26 +40,29 @@ class SupportEnv:
 
     def step(self, action: Action):
         if self.state["done"]:
-            return self._obs(), 0.0, True, {"error": "done"}
+            return self._obs(), 0.01, True, {"error": "done"}
 
         self.state["step_count"] += 1
         self.state["history"].append(f"{action.action_type}: {action.content}")
 
         reward = grade_step(self.state, action)
 
-        done = (
-            self.state["step_count"] >= self.task["max_steps"]
-            or action.action_type == "resolve"
-        )
+        done = self.state["step_count"] >= self.task["max_steps"]
 
         if done:
             reward += grade_final(self.state)
 
         self.state["done"] = done
 
-        reward = max(0.0, min(1.0, reward))
+        # 🔥 CRITICAL FIX ORDER
 
-        return self._obs(), round(reward, 2), done, {"error": None}
+        # 1. clamp BEFORE rounding
+        reward = clamp(reward)
 
-    def state(self):
-        return self.state
+        # 2. round
+        reward = round(reward, 2)
+
+        # 3. clamp AGAIN after rounding (THIS FIXES YOUR BUG)
+        reward = clamp(reward)
+
+        return self._obs(), reward, done, {"error": None}
