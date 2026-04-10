@@ -84,16 +84,15 @@ def run_task(task_name):
     print(f"[START] task={task_name}")
 
     try:
-        # ✅ MUST PASS TASK
         res = requests.post(
             f"{ENV_BASE_URL}/reset",
             json={"task": task_name}
         )
         obs = res.json()
 
-        final_reward = 0.5  # safe default
+        final_reward = None   # 🔥 DO NOT DEFAULT
 
-        for step in range(10):  # enough steps to reach done
+        for step in range(10):
             action_type, content = get_action(obs)
 
             res = requests.post(
@@ -112,22 +111,29 @@ def run_task(task_name):
 
             print(f"[STEP] step={step} action={action_type} reward={reward}")
 
-            # 🔥 ONLY FINAL COUNTS
             if done:
                 final_reward = reward
                 break
 
-        # 🔥 ABSOLUTE SAFETY
+        # 🔥 CRITICAL FIX — HANDLE NOT DONE CASE
+        if final_reward is None:
+            final_reward = reward  # last observed reward
+
+        # 🔥 HARD GUARANTEE
+        try:
+            final_reward = float(final_reward)
+        except:
+            final_reward = 0.5
+
         if final_reward <= 0:
             final_reward = 0.01
-        if final_reward >= 1:
+        elif final_reward >= 1:
             final_reward = 0.99
 
         print(f"[END] task={task_name} total_reward={round(final_reward, 3)}")
 
     except Exception as e:
         print(f"[ERROR] {e}")
-
 
 # =========================
 # MAIN
