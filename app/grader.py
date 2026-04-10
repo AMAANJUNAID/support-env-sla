@@ -9,16 +9,13 @@ def update_sentiment(state, action):
     return state["sentiment"]
 
 
-# =========================
-# STEP REWARD
-# =========================
 def grade_step(state, action):
     reward = 0.0
 
     state["sla_hours_left"] -= 1
 
     if state["sla_hours_left"] <= 0:
-        return 0.01  # safe fallback
+        return 0.01
 
     ticket = state["ticket"]
 
@@ -47,9 +44,6 @@ def grade_step(state, action):
     return float(reward)
 
 
-# =========================
-# FINAL REWARD
-# =========================
 def grade_final(state):
     history = " ".join(state["history"]).lower()
     ticket = state["ticket"]
