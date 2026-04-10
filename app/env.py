@@ -19,7 +19,7 @@ def safe_reward(x):
     elif x >= 1:
         x = 0.99
 
-    # round
+    # round (use 3 decimals to avoid 1.0 jump)
     x = round(x, 3)
 
     # clamp AGAIN after rounding
@@ -78,7 +78,7 @@ class SupportEnv:
 
         self.state["done"] = done
 
-        # 🔥 ONLY EXIT POINT — ALWAYS SAFE
+        # 🔥 SINGLE SAFE EXIT POINT
         reward = safe_reward(reward)
 
         return self._obs(), reward, done, {"error": None}
