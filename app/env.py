@@ -3,8 +3,32 @@ from app.tasks import get_task
 from app.grader import grade_step, grade_final
 
 
-def clamp(x):
-    return max(0.01, min(x, 0.99))
+def safe_reward(x):
+    """
+    HARD GUARANTEE:
+    Always returns value strictly between (0,1)
+    """
+    try:
+        x = float(x)
+    except:
+        return 0.5
+
+    # clamp BEFORE rounding
+    if x <= 0:
+        x = 0.01
+    elif x >= 1:
+        x = 0.99
+
+    # round
+    x = round(x, 3)
+
+    # clamp AGAIN after rounding
+    if x <= 0:
+        x = 0.01
+    elif x >= 1:
+        x = 0.99
+
+    return x
 
 
 class SupportEnv:
@@ -54,15 +78,7 @@ class SupportEnv:
 
         self.state["done"] = done
 
-        # 🔥 CRITICAL FIX ORDER
-
-        # 1. clamp BEFORE rounding
-        reward = clamp(reward)
-
-        # 2. round
-        reward = round(reward, 2)
-
-        # 3. clamp AGAIN after rounding (THIS FIXES YOUR BUG)
-        reward = clamp(reward)
+        # 🔥 ONLY EXIT POINT — ALWAYS SAFE
+        reward = safe_reward(reward)
 
         return self._obs(), reward, done, {"error": None}
