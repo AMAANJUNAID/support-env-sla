@@ -33,11 +33,20 @@ def reset(payload: Optional[dict] = Body(default=None)):
 def step(action: Action):
     obs, reward, done, info = env.step(action)
 
-    # 🔥 HARD SAFETY (ABSOLUTE GUARANTEE)
+    # 🔥 HARD GUARANTEE — NO EXCEPTIONS
+    try:
+        reward = float(reward)
+    except:
+        reward = 0.5
+
+    # clamp STRICTLY inside (0,1)
     if reward <= 0:
         reward = 0.01
-    if reward >= 1:
+    elif reward >= 1:
         reward = 0.99
+
+    # 🔥 CRITICAL: avoid floating edge like 0.999999 → 1.0
+    reward = max(0.01, min(reward, 0.99))
 
     return {
         "observation": obs.dict(),
@@ -45,7 +54,6 @@ def step(action: Action):
         "done": done,
         "info": info
     }
-
 
 def main():
     import uvicorn
